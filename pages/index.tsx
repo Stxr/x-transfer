@@ -1,11 +1,26 @@
 import Head from 'next/head'
 import Image from 'next/image'
 import { Inter } from 'next/font/google'
+import ip from 'ip'
 import styles from '@/styles/Home.module.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export default function Home() {
+interface StaticProps {
+  localIp: string
+}
+export async function getStaticProps() {
+  // get build service ip
+  const localIp = ip.address() || 'localhost'
+  return {
+    props: {
+      localIp
+    },
+  }
+}
+
+export default function Home({ localIp }: StaticProps) {
+  console.log('localIp', localIp)
   return (
     <>
       <Head>
@@ -22,7 +37,8 @@ export default function Home() {
               <code className={styles.code}>pages/index.tsx</code>
             </p>
             <p className='mt-2'>
-              Get started by editing
+              local ip is:&nbsp;
+              <code className={styles.code}>{localIp}</code>
             </p>
           </div>
 
