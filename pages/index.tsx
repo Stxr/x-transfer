@@ -5,16 +5,27 @@ import ip from "ip";
 import styles from "@/styles/Home.module.css";
 import { useSocket } from "@/hooks/useSocket";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { useMount, useUpdate, useUpdateEffect } from "ahooks";
-import { useEffect, useState } from "react";
-import { useFilePicker } from "use-file-picker";
+import { useMemoizedFn, useMount, useUpdate, useUpdateEffect } from "ahooks";
+import { useEffect, useRef, useState } from "react";
+import { FileContent, useFilePicker } from "use-file-picker";
+import { QRCodeCanvas } from 'qrcode.react';
 
 const inter = Inter({ subsets: ["latin"] });
-
-interface StaticProps {
+interface IFileContent extends FileContent {
+  timestamp: number
+}
+interface IStaticProps {
   localIp: string;
   port: number;
 }
+
+function wrapperFileContent(fileContent: FileContent) {
+  return {
+    ...fileContent,
+    timestamp: Date.now(),
+  }
+}
+
 export async function getStaticProps() {
   // get build service ip
   const localIp = ip.address() || "localhost";
@@ -26,13 +37,14 @@ export async function getStaticProps() {
   };
 }
 
-export default function Home({ localIp, port }: StaticProps) {
+export default function Home({ localIp, port }: IStaticProps) {
   const { deviceId } = useDeviceId();
   const socket = useSocket(deviceId, localIp, port);
   const [onlineClients, setOnlineClients] = useState<string[]>([]);
   const [openFileSelector, { filesContent, loading }] = useFilePicker({
     readAs: "ArrayBuffer",
   });
+  // const temptFile = useRef<IFileContent | null>()
   useUpdateEffect(() => {
     socket?.on("online-clients", (data) => {
       console.log("online-clients:", data);
@@ -46,6 +58,21 @@ export default function Home({ localIp, port }: StaticProps) {
       socket?.emit("send-file", filesContent);
     }
   }, [filesContent, socket]);
+
+  const downloadFile = useMemoizedFn(() => {
+    const file = filesContent && filesContent[0];
+    if (file) {
+      // convert arraybuffer to blob
+      const blob = new Blob([file.content], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      // download file on h5
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  })
   return (
     <>
       <Head>
@@ -64,6 +91,7 @@ export default function Home({ localIp, port }: StaticProps) {
             online device:
             <code className={styles.code}>{onlineClients.join("\t")}</code>
           </div>
+          <QRCodeCanvas className="border my-2" value={`http://${localIp}:3000`} />
         </div>
         <div>
           <input
@@ -78,7 +106,7 @@ export default function Home({ localIp, port }: StaticProps) {
             title=""
             type="button"
             value="download file"
-            onClick={()=>{}}
+            onClick={() => { downloadFile() }}
           />
           <div>
             {loading && <div>loading...</div>}
