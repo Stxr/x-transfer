@@ -19,10 +19,11 @@ interface IStaticProps {
   port: number;
 }
 
-function wrapperFileContent(fileContent: FileContent) {
+function wrapperFileContent(fileContent: FileContent, args: Record<string, any> = {}) {
   return {
     ...fileContent,
     timestamp: Date.now(),
+    ...args
   }
 }
 
@@ -44,20 +45,26 @@ export default function Home({ localIp, port }: IStaticProps) {
   const [openFileSelector, { filesContent, loading }] = useFilePicker({
     readAs: "ArrayBuffer",
   });
+  const [chatBoard, setChatBoard] = useState<IFileContent[]>([]);
   // const temptFile = useRef<IFileContent | null>()
   useUpdateEffect(() => {
     socket?.on("online-clients", (data) => {
       console.log("online-clients:", data);
       setOnlineClients(data.onlineClients);
     });
+
+    socket?.on("update-chat-board", (data) => {
+      console.log("update-chat-board:", data.chatBoard);
+      setChatBoard(data.chatBoard);
+    })
   }, [socket]);
 
   useUpdateEffect(() => {
     if (filesContent && filesContent.length > 0) {
       console.log("filesContent:", filesContent);
-      socket?.emit("send-file", filesContent);
+      socket?.emit("send-file-to-server", filesContent.map(v => wrapperFileContent(v, { deviceId })));
     }
-  }, [filesContent, socket]);
+  }, [filesContent, socket, deviceId]);
 
   const downloadFile = useMemoizedFn(() => {
     const file = filesContent && filesContent[0];
@@ -110,8 +117,8 @@ export default function Home({ localIp, port }: IStaticProps) {
           />
           <div>
             {loading && <div>loading...</div>}
-            {filesContent &&
-              filesContent.map((item) => {
+            {chatBoard &&
+              chatBoard.map((item) => {
                 return (
                   <div key={item.name}>
                     <div>{item.name}</div>

@@ -14,23 +14,27 @@ const nextApp = next({ dev, hostname, port })
 const nextHandler = nextApp.getRequestHandler()
 const io = new Server(server, { cors: { origin: '*' }, maxHttpBufferSize: 5e8 }) // 5e8: 500MB
 const clients = {}
+const chatBoard = []
 io.on('connect', (socket) => {
     socket.on('clientOnline', (data) => {
         const { deviceId } = data
         console.log('data:', data)
         clients[deviceId] = socket
         console.log('client online', socket.id)
-        noticeClientStatus(socket)
+        updateClientStatus(socket)
     })
     socket.on('disconnect', (data) => {
         const device = Object.keys(clients).find(key => clients[key] === socket)
         console.log('remove device:', device)
         delete clients[device]
         console.log('client disconnect', socket.id)
-        noticeClientStatus(socket)
+        updateClientStatus(socket)
     })
-    socket.on('send-file', (data) => {
-        console.log('send-file:', data)
+
+    socket.on('send-file-to-server', (data) => {
+        console.log('send-file-to-server:', data)
+        chatBoard.push(...data)
+        updateChatBoard()
     })
 })
 
@@ -47,7 +51,11 @@ nextApp.prepare().then(() => {
     })
 })
 
-const noticeClientStatus = denounce((socket) => {
+const updateChatBoard = denounce(() => {
+    io.emit('update-chat-board', { chatBoard })
+}, 500)
+
+const updateClientStatus = denounce((socket) => {
     const onlineClients = Object.keys(clients)
     console.log('current device:', onlineClients)
     console.log('current socket:', onlineClients.map(key => clients[key].id))
