@@ -9,6 +9,7 @@ import { useMemoizedFn, useMount, useUpdate, useUpdateEffect } from "ahooks";
 import { useEffect, useRef, useState } from "react";
 import { FileContent, useFilePicker } from "use-file-picker";
 import { QRCodeCanvas } from "qrcode.react";
+import ReactDOM from "react-dom";
 
 const inter = Inter({ subsets: ["latin"] });
 interface IFileContent extends FileContent {
@@ -45,13 +46,11 @@ export default function Home({ localIp, port }: IStaticProps) {
   const { deviceId } = useDeviceId();
   const socket = useSocket(deviceId, localIp, port);
   const [onlineClients, setOnlineClients] = useState<string[]>([]);
-  const [openFileSelector, { filesContent, loading, clear }] = useFilePicker({
-    readAs: "ArrayBuffer",
-  });
   const chatDomRef = useRef<HTMLDivElement>(null);
   const [chatBoardNoContent, setChatBoardNoContent] = useState<
     Omit<IFileContent, "content">[]
   >([]);
+  const [dialogVisible, setDialogVisible] = useState(false);
   // const temptFile = useRef<IFileContent | null>()
   useUpdateEffect(() => {
     socket?.on("online-clients", (data) => {
@@ -64,9 +63,9 @@ export default function Home({ localIp, port }: IStaticProps) {
       setChatBoardNoContent(data.chatBoardNoContent);
       setTimeout(() => {
         if (chatDomRef.current) {
-            console.log('scrollTop:', chatDomRef.current.scrollTop, 'scrollHeight:', chatDomRef.current.scrollHeight)
+          console.log('scrollTop:', chatDomRef.current.scrollTop, 'scrollHeight:', chatDomRef.current.scrollHeight)
           // scroll to bottom
-            chatDomRef.current.scrollTop = chatDomRef.current.scrollHeight;
+          chatDomRef.current.scrollTop = chatDomRef.current.scrollHeight;
         }
       }, 0);
     });
@@ -94,8 +93,20 @@ export default function Home({ localIp, port }: IStaticProps) {
       <Head>
         <title>x-chat</title>
       </Head>
-      <main className="p-4 h-screen w-screen relative overflow-y-hidden flex flex-col">
-        <div>
+      <main className="p-4 h-screen max-w-[70ch] relative overflow-y-hidden flex flex-col content-center mx-auto">
+        <div className="border mb-2 p-2 rounded  flex-row flex items-center justify-center gap-2 active:opacity-80 ">
+          <div className="text-sm ">{`http://${localIp}:3000`}</div>
+          <svg onClick={() => {
+            setDialogVisible(true)
+          }} className="cursor-pointer " viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M832 729.6v102.4h-166.4v-102.4H537.6V537.6h128v128h166.4V537.6h128v192h-128zM64 64h422.4v422.4H64V64z m0 473.6h422.4v422.4H64V537.6z m473.6-473.6h422.4v422.4H537.6V64zM192 192v166.4h166.4V192H192z m0 473.6v166.4h166.4v-166.4H192z m473.6-473.6v166.4h166.4V192h-166.4zM537.6 832h128v128H537.6v-128z m294.4 0h128v128h-128v-128z" fill="currentColor" ></path></svg>
+          <Dialog visible={dialogVisible} onClose={() => { setDialogVisible(false) }} >
+            <QRCodeCanvas
+              className="border my-2"
+              value={`http://${localIp}:3000`}
+            />
+          </Dialog>
+        </div>
+        {/* <div>
           <p className="mt-2">
             build server ip address:&nbsp;
             <code className={styles.code}>{localIp}</code>
@@ -111,18 +122,18 @@ export default function Home({ localIp, port }: IStaticProps) {
             className="border my-2"
             value={`http://${localIp}:3000`}
           />
-        </div>
+        </div> */}
         <div className="flex-col flex flex-1 overflow-y-scroll">
           <div
             ref={chatDomRef}
-            className="flex-1 border h-full overflow-y-scroll px-4 py-2"
+            className="flex-1 border h-full overflow-y-scroll px-4 py-2 overflow-x-hidden"
           >
             {chatBoardNoContent &&
               chatBoardNoContent.map((item, index) => {
                 return (
                   <div key={item.timestamp}>
                     <div
-                      className="cursor-pointer border p-2 m-2 rounded-xl hover:opacity-90 active:opacity-70 whitespace-pre-wrap"
+                      className="border p-2 m-2 rounded-xl hover:opacity-90 whitespace-pre-wrap"
                       onClick={() => {
                         // downloadFile(
                         //   item.content as unknown as ArrayBuffer,
@@ -131,13 +142,14 @@ export default function Home({ localIp, port }: IStaticProps) {
                       }}
                     >
                       {item.name}
+
                     </div>
                   </div>
                 );
               })}
           </div>
           <InputArea
-            className="mt-2"
+            className="mt-4"
             onEnter={(value) => {
               console.log("value:", value);
               if (typeof value === "string") {
@@ -165,6 +177,7 @@ export default function Home({ localIp, port }: IStaticProps) {
 interface IInputAreaProps {
   className?: string;
   onEnter?: (value: string | FileContent[]) => void;
+  onClear?: () => void;
 }
 const InputArea: React.FC<IInputAreaProps> = (props) => {
   const [value, setValue] = useState("");
@@ -194,7 +207,10 @@ const InputArea: React.FC<IInputAreaProps> = (props) => {
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
-            props.onEnter?.(e.currentTarget.value);
+            const value = e.currentTarget.value;
+            if (value) {
+              props.onEnter?.(value);
+            }
             e.preventDefault();
             setValue("");
           }
@@ -242,3 +258,19 @@ const InputArea: React.FC<IInputAreaProps> = (props) => {
     </div>
   );
 };
+
+
+interface IDialogProps {
+  visible: boolean
+  onClose?: () => void
+  children: React.ReactNode;
+}
+const Dialog: React.FC<IDialogProps> = props => {
+  const visible = props.visible
+  if (!visible) return null
+  return ReactDOM.createPortal(<div
+    onClick={() => { props.onClose && props.onClose() }}
+    className="absolute bg-gray-600 top-0 left-0 h-full w-full bg-opacity-80 z-20 flex items-center justify-center">
+    {props.children}
+  </div>, document.body)
+}
