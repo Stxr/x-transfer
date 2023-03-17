@@ -17,7 +17,7 @@ const nextHandler = nextApp.getRequestHandler()
 const io = new Server(server, { cors: { origin: '*' }, maxHttpBufferSize: 1e9 }) //  1e9:1GB
 // io.use(p2p)
 const clients = {}
-const chatBoard = []
+let chatBoard = []
 io.on('connect', (socket) => {
     socket.on('clientOnline', (data) => {
         const { deviceId } = data
@@ -38,6 +38,10 @@ io.on('connect', (socket) => {
         console.log('send-file-to-server:', data)
         chatBoard.push(...data)
         chatBoard.sort((a, b) => a.timestamp - b.timestamp)
+        updateChatBoard()
+    })
+    socket.on('clear-chat-board', () => {
+        chatBoard = []
         updateChatBoard()
     })
 })

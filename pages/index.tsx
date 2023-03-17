@@ -10,10 +10,11 @@ import { useEffect, useRef, useState } from "react";
 import { FileContent, useFilePicker } from "use-file-picker";
 import { QRCodeCanvas } from "qrcode.react";
 import ReactDOM from "react-dom";
-
+import clsx from 'clsx'
 const inter = Inter({ subsets: ["latin"] });
 interface IFileContent extends FileContent {
   timestamp: number;
+  deviceId: string;
 }
 interface IStaticProps {
   localIp: string;
@@ -131,9 +132,10 @@ export default function Home({ localIp, port }: IStaticProps) {
             {chatBoardNoContent &&
               chatBoardNoContent.map((item, index) => {
                 return (
-                  <div key={item.timestamp}>
+                  <div className="mx-2 my-3" key={item.timestamp}>
+                    <div className="my-1">{item.deviceId}</div>
                     <div
-                      className="border p-2 m-2 rounded-xl hover:opacity-90 whitespace-pre-wrap"
+                      className={clsx(' rounded p-2 hover:opacity-90 whitespace-pre-wrap', deviceId === item.deviceId ? 'bg-[#3fb475] text-[#333]' : 'bg-[#2c2c2c]')}
                       onClick={() => {
                         // downloadFile(
                         //   item.content as unknown as ArrayBuffer,
@@ -150,6 +152,9 @@ export default function Home({ localIp, port }: IStaticProps) {
           </div>
           <InputArea
             className="mt-4"
+            onClear={() => {
+              socket?.emit("clear-chat-board")
+            }}
             onEnter={(value) => {
               console.log("value:", value);
               if (typeof value === "string") {
@@ -239,6 +244,7 @@ const InputArea: React.FC<IInputAreaProps> = (props) => {
         </svg>
       </button>
       <button
+        onClick={props.onClear}
         title="clear"
         className="bg-slate-700 rounded-sm px-4 py-2 h-12 hover:bg-opacity-80 text-slate-300"
         type="button"
