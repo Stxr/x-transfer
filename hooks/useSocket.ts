@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
 import io, { Socket } from 'socket.io-client'
+import P2P from 'socket.io-p2p'
 import { useMount } from "ahooks";
 export function useSocket(id: string | null, ip: string, port = 3000) {
     const socket = useRef<Socket | null>(null)
     useMount(() => {
         if (socket.current) return
         socket.current = io(`http://${ip}:${port}`);
+        
         // socket.current?.on('online-clients', (newMessage) => {
         //     console.log(newMessage);
         // });
