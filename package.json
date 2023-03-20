@@ -1,6 +1,15 @@
 {
   "name": "x-transfer",
   "version": "0.0.3",
+  "description": "A file transfer tool",
+  "homepage": "https://github.com/Stxr/x-transfer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Stxr/x-transfer"
+  },
+  "keywords": [
+    "file",
+    "transfer"],
   "scripts": {
     "dev": "node dev.js",
     "build": "sh build.sh",
