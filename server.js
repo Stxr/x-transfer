@@ -1,99 +1,70 @@
-// server.js
-const { createServer } = require('http')
-const { parse } = require('url')
-const next = require('next')
-const app = require('express')()
-const server = require('http').Server(app)
-const { Server } = require('socket.io')
-// const p2p = require('socket.io-p2p-server').Server
+#!/usr/bin/env node
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const qrcode = require('qrcode-terminal');
+const wrapperWithSocket = require('./socket');
 const ip = require('ip')
-const qrcode = require('qrcode-terminal')
-const dev = process.env.NODE_ENV !== 'production'
 const hostname = ip.address()
-const port = 3000
-// when using middleware `hostname` and `port` must be provided below
-const nextApp = next({ dev, hostname, port })
-const nextHandler = nextApp.getRequestHandler()
-const io = new Server(server, { cors: { origin: '*' }, maxHttpBufferSize: 1e9 }) //  1e9:1GB
-// io.use(p2p)
-const clients = {}
-let chatBoard = []
-io.on('connect', (socket) => {
-    socket.on('clientOnline', (data) => {
-        const { deviceId } = data
-        console.log('data:', data)
-        clients[deviceId] = socket
-        console.log('client online', socket.id)
-        updateClientStatus(socket)
-    })
-    socket.on('disconnect', (data) => {
-        const device = Object.keys(clients).find(key => clients[key] === socket)
-        console.log('remove device:', device)
-        delete clients[device]
-        console.log('client disconnect', socket.id)
-        updateClientStatus(socket)
-    })
+const server = http.createServer((req, res) => {
+    // console.log(`${req.method} ${req.url}`);
 
-    socket.on('send-file-to-server', (data) => {
-        console.log('send-file-to-server:', data)
-        chatBoard.push(...data)
-        chatBoard.sort((a, b) => a.timestamp - b.timestamp)
-        updateChatBoard()
-    })
-    socket.on('clear-chat-board', () => {
-        chatBoard = []
-        updateChatBoard()
-    })
-})
-
-nextApp.prepare().then(() => {
-    app.get('*', (req, res) => {
-        return nextHandler(req, res)
-    })
-    app.post('*', (req, res) => {
-        return nextHandler(req, res)
-    })
-    server.listen(port, (err) => {
-        if (err) throw err
-        const url = `http://${hostname}:${port}`
-        qrcode.generate(url, { small: true })
-        console.log(`> Ready on ${url}`)
-    })
-})
-
-const updateChatBoard = denounce(() => {
-    console.log('update chat board')
-    io.emit('update-chat-board', { chatBoardNoContent: chatBoard.map(item => omit(item, 'content')) })
-}, 500)
-
-const updateClientStatus = denounce((socket) => {
-    const onlineClients = Object.keys(clients)
-    console.log('current device:', onlineClients)
-    console.log('current socket:', onlineClients.map(key => clients[key].id))
-    // socket.emit('online-clients', { onlineClients })
-    io.emit('online-clients', { onlineClients })
-    updateChatBoard()
-}, 1000)
-
-function denounce(fn, delay) {
-    let timer = null
-    return function (args) {
-        if (timer) {
-            clearTimeout(timer)
-        }
-        timer = setTimeout(() => {
-            fn(args)
-        }, delay)
+    // 设置默认首页为index.html
+    if (req.url == '/') {
+        req.url = '/index.html';
     }
-}
 
-function omit(obj, keys) {
-    const result = {}
-    for (const key in obj) {
-        if (keys.includes(key)) {
-            continue
+    // 解析请求的文件路径
+    const filePath = path.join(__dirname, '', req.url);
+    // 检查文件是否存在
+    fs.access(filePath, fs.constants.F_OK, (err) => {
+        if (err) {
+            res.statusCode = 404;
+            res.end('File not found');
+            return;
         }
-        result[key] = obj[key]
+
+        // 读取文件并返回
+        fs.readFile(filePath, (err, data) => {
+            if (err) {
+                res.statusCode = 500;
+                res.end('Server error');
+                return;
+            }
+
+            // 设置Content-Type头部
+            const extname = path.extname(filePath);
+            const contentType = getContentType(extname);
+            res.setHeader('Content-Type', contentType);
+
+            res.end(data);
+        });
+    });
+});
+wrapperWithSocket(server)
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+    const url = `http://${hostname}:${port}`
+    qrcode.generate(url, { small: true })
+    console.log(`Server listening on ${url}`);
+});
+
+// 根据文件扩展名返回Content-Type值
+function getContentType(extname) {
+    switch (extname) {
+        case '.html':
+            return 'text/html';
+        case '.css':
+            return 'text/css';
+        case '.js':
+            return 'text/javascript';
+        case '.json':
+            return 'application/json';
+        case '.png':
+            return 'image/png';
+        case '.jpg':
+            return 'image/jpg';
+        default:
+            return 'application/octet-stream';
     }
-    return result
 }

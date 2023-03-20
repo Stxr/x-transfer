@@ -1,6 +1,5 @@
 import Head from "next/head";
 import Image from "next/image";
-import { Inter } from "next/font/google";
 import ip from "ip";
 import styles from "@/styles/Home.module.css";
 import { useSocket } from "@/hooks/useSocket";
@@ -10,8 +9,8 @@ import { useEffect, useRef, useState } from "react";
 import { FileContent, useFilePicker } from "use-file-picker";
 import { QRCodeCanvas } from "qrcode.react";
 import ReactDOM from "react-dom";
-import clsx from 'clsx'
-const inter = Inter({ subsets: ["latin"] });
+import clsx from "clsx";
+import { Copy } from "@/components/Copy";
 interface IFileContent extends FileContent {
   timestamp: number;
   deviceId: string;
@@ -43,6 +42,49 @@ export async function getStaticProps() {
   };
 }
 
+interface IChatBoardItemProps {
+  item: Omit<IFileContent, "content">;
+  deviceId: string | null;
+}
+function ChatBoardItem(props: IChatBoardItemProps) {
+  const [copyVisible, setCopyVisible] = useState(false);
+  return (
+    <div className="mx-2 my-3 relative">
+      <div className="my-1">{props.item.deviceId}</div>
+      <div
+        onMouseEnter={() => {
+          setCopyVisible(true);
+        }}
+        onMouseLeave={() => {
+          setCopyVisible(false);
+        }}
+        className={clsx(
+          " rounded p-2 hover:opacity-90 whitespace-pre-wrap",
+          props.deviceId === props.item.deviceId
+            ? "bg-[#3fb475] text-[#333]"
+            : "bg-[#2c2c2c]"
+        )}
+        onClick={() => {
+          // downloadFile(
+          //   item.content as unknown as ArrayBuffer,
+          //   item.name
+          // );
+        }}
+      >
+        {props.item.name}
+        {/* {item.content && (
+       <img
+         src={URL.createObjectURL(
+           new Blob([item.content as unknown as ArrayBuffer])
+         )}
+       />
+      )} */}
+        <Copy visible={copyVisible} text={props.item.name}></Copy>
+      </div>
+    </div>
+  );
+}
+
 export default function Home({ localIp, port }: IStaticProps) {
   const { deviceId } = useDeviceId();
   const socket = useSocket(deviceId, localIp, port);
@@ -51,6 +93,7 @@ export default function Home({ localIp, port }: IStaticProps) {
   const [chatBoardNoContent, setChatBoardNoContent] = useState<
     Omit<IFileContent, "content">[]
   >([]);
+
   const [dialogVisible, setDialogVisible] = useState(false);
   // const temptFile = useRef<IFileContent | null>()
   useUpdateEffect(() => {
@@ -64,7 +107,12 @@ export default function Home({ localIp, port }: IStaticProps) {
       setChatBoardNoContent(data.chatBoardNoContent);
       setTimeout(() => {
         if (chatDomRef.current) {
-          console.log('scrollTop:', chatDomRef.current.scrollTop, 'scrollHeight:', chatDomRef.current.scrollHeight)
+          console.log(
+            "scrollTop:",
+            chatDomRef.current.scrollTop,
+            "scrollHeight:",
+            chatDomRef.current.scrollHeight
+          );
           // scroll to bottom
           chatDomRef.current.scrollTop = chatDomRef.current.scrollHeight;
         }
@@ -97,10 +145,27 @@ export default function Home({ localIp, port }: IStaticProps) {
       <main className="p-4 h-screen max-w-[70ch] relative overflow-y-hidden flex flex-col content-center mx-auto">
         <div className="border mb-2 p-2 rounded  flex-row flex items-center justify-center gap-2 active:opacity-80 ">
           <div className="text-sm ">{`http://${localIp}:3000`}</div>
-          <svg onClick={() => {
-            setDialogVisible(true)
-          }} className="cursor-pointer " viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M832 729.6v102.4h-166.4v-102.4H537.6V537.6h128v128h166.4V537.6h128v192h-128zM64 64h422.4v422.4H64V64z m0 473.6h422.4v422.4H64V537.6z m473.6-473.6h422.4v422.4H537.6V64zM192 192v166.4h166.4V192H192z m0 473.6v166.4h166.4v-166.4H192z m473.6-473.6v166.4h166.4V192h-166.4zM537.6 832h128v128H537.6v-128z m294.4 0h128v128h-128v-128z" fill="currentColor" ></path></svg>
-          <Dialog visible={dialogVisible} onClose={() => { setDialogVisible(false) }} >
+          <svg
+            onClick={() => {
+              setDialogVisible(true);
+            }}
+            className="cursor-pointer "
+            viewBox="0 0 1024 1024"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+          >
+            <path
+              d="M832 729.6v102.4h-166.4v-102.4H537.6V537.6h128v128h166.4V537.6h128v192h-128zM64 64h422.4v422.4H64V64z m0 473.6h422.4v422.4H64V537.6z m473.6-473.6h422.4v422.4H537.6V64zM192 192v166.4h166.4V192H192z m0 473.6v166.4h166.4v-166.4H192z m473.6-473.6v166.4h166.4V192h-166.4zM537.6 832h128v128H537.6v-128z m294.4 0h128v128h-128v-128z"
+              fill="currentColor"
+            ></path>
+          </svg>
+          <Dialog
+            visible={dialogVisible}
+            onClose={() => {
+              setDialogVisible(false);
+            }}
+          >
             <QRCodeCanvas
               className="border my-2"
               value={`http://${localIp}:3000`}
@@ -132,28 +197,18 @@ export default function Home({ localIp, port }: IStaticProps) {
             {chatBoardNoContent &&
               chatBoardNoContent.map((item, index) => {
                 return (
-                  <div className="mx-2 my-3" key={item.timestamp}>
-                    <div className="my-1">{item.deviceId}</div>
-                    <div
-                      className={clsx(' rounded p-2 hover:opacity-90 whitespace-pre-wrap', deviceId === item.deviceId ? 'bg-[#3fb475] text-[#333]' : 'bg-[#2c2c2c]')}
-                      onClick={() => {
-                        // downloadFile(
-                        //   item.content as unknown as ArrayBuffer,
-                        //   item.name
-                        // );
-                      }}
-                    >
-                      {item.name}
-
-                    </div>
-                  </div>
+                  <ChatBoardItem
+                    key={item.timestamp}
+                    deviceId={deviceId}
+                    item={item}
+                  ></ChatBoardItem>
                 );
               })}
           </div>
           <InputArea
             className="mt-4"
             onClear={() => {
-              socket?.emit("clear-chat-board")
+              socket?.emit("clear-chat-board");
             }}
             onEnter={(value) => {
               console.log("value:", value);
@@ -265,18 +320,23 @@ const InputArea: React.FC<IInputAreaProps> = (props) => {
   );
 };
 
-
 interface IDialogProps {
-  visible: boolean
-  onClose?: () => void
+  visible: boolean;
+  onClose?: () => void;
   children: React.ReactNode;
 }
-const Dialog: React.FC<IDialogProps> = props => {
-  const visible = props.visible
-  if (!visible) return null
-  return ReactDOM.createPortal(<div
-    onClick={() => { props.onClose && props.onClose() }}
-    className="absolute bg-gray-600 top-0 left-0 h-full w-full bg-opacity-80 z-20 flex items-center justify-center">
-    {props.children}
-  </div>, document.body)
-}
+const Dialog: React.FC<IDialogProps> = (props) => {
+  const visible = props.visible;
+  if (!visible) return null;
+  return ReactDOM.createPortal(
+    <div
+      onClick={() => {
+        props.onClose && props.onClose();
+      }}
+      className="absolute bg-gray-600 top-0 left-0 h-screen w-full bg-opacity-80 z-20 flex items-center justify-center"
+    >
+      {props.children}
+    </div>,
+    document.body
+  );
+};

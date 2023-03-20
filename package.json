@@ -1,40 +1,43 @@
 {
-  "name": "x-chat",
-  "version": "0.1.0",
-  "private": true,
+  "name": "x-transfer",
+  "version": "0.0.3",
   "scripts": {
-    "server": "node server.js",
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node dev.js",
+    "build": "sh build.sh",
     "start": "next start",
-    "lint": "next lint"
+    "prod": "NODE_ENV=production node server.js",
+    "lint": "next lint",
+    "prepublish": "next build"
   },
+  "bin": "./out/server.js",
+  "main": "./out/server.js",
+  "files": [
+    "out"
+  ],
   "dependencies": {
+    "ip": "^1.1.8",
+    "qrcode-terminal": "^0.12.0",
+    "socket.io": "^4.6.1",
+    "socket.io-client": "^4.6.1"
+  },
+  "devDependencies": {
+    "next": "13.2.4",
+    "express": "^4.18.2",
+    "use-file-picker": "^1.5.2",
+    "qrcode.react": "^3.1.0",
+    "ahooks": "^3.7.5",
+    "clsx": "^1.2.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "4.9.5",
     "@types/node": "18.15.1",
     "@types/react": "18.0.28",
     "@types/react-dom": "18.0.11",
-    "ahooks": "^3.7.5",
-    "clsx": "^1.2.1",
-    "eslint": "8.36.0",
-    "eslint-config-next": "13.2.4",
-    "express": "^4.18.2",
-    "ip": "^1.1.8",
-    "next": "13.2.4",
-    "qrcode-terminal": "^0.12.0",
-    "qrcode.react": "^3.1.0",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "socket.io": "^4.6.1",
-    "socket.io-client": "^4.6.1",
-    "socket.io-p2p": "^2.2.0",
-    "socket.io-p2p-server": "^1.2.0",
-    "typescript": "4.9.5",
-    "use-file-picker": "^1.5.2"
-  },
-  "devDependencies": {
     "@types/ip": "^1.1.0",
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.21",
-    "tailwindcss": "^3.2.7"
+    "tailwindcss": "^3.2.7",
+    "eslint": "8.36.0",
+    "eslint-config-next": "13.2.4"
   }
 }
