@@ -31,6 +31,13 @@ function wrapperWithSocket(server) {
             chatBoard = []
             updateChatBoard()
         })
+        socket.on('get-file-content', (data) => {
+            const { timestamp, name } = data
+            const file = chatBoard.find(item => item.timestamp === timestamp && item.name === name)
+            if (file) {
+                socket.emit('download-file', file)
+            }
+        })
     })
     const updateChatBoard = denounce(() => {
         console.log('update chat board')

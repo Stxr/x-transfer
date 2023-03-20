@@ -1,7 +1,6 @@
 import Head from "next/head";
 import Image from "next/image";
 import ip from "ip";
-import styles from "@/styles/Home.module.css";
 import { useSocket } from "@/hooks/useSocket";
 import { useDeviceId } from "@/hooks/useDeviceId";
 import { useMemoizedFn, useMount, useUpdate, useUpdateEffect } from "ahooks";
@@ -14,6 +13,7 @@ import { Copy } from "@/components/Copy";
 interface IFileContent extends FileContent {
   timestamp: number;
   deviceId: string;
+  type: "file" | "text";
 }
 interface IStaticProps {
   localIp: string;
@@ -45,6 +45,7 @@ export async function getStaticProps() {
 interface IChatBoardItemProps {
   item: Omit<IFileContent, "content">;
   deviceId: string | null;
+  onDownload?: (item: Omit<IFileContent, "content">) => void;
 }
 function ChatBoardItem(props: IChatBoardItemProps) {
   const [copyVisible, setCopyVisible] = useState(false);
@@ -79,7 +80,20 @@ function ChatBoardItem(props: IChatBoardItemProps) {
          )}
        />
       )} */}
-        <Copy visible={copyVisible} text={props.item.name}></Copy>
+        <Copy visible={copyVisible && props.item.type === "text"} text={props.item.name}></Copy>
+        {copyVisible && props.item.type === "file" && (
+          <button
+            onClick={() => {
+              const item = props.item;
+              if (item.type === "file") {
+                props.onDownload?.(props.item);
+              }
+            }}
+            className="bg-gray-300 px-2 right-0 absolute h-6 bottom-0 rounded text-gray-700 "
+          >
+            download
+          </button>
+        )}
       </div>
     </div>
   );
@@ -201,6 +215,16 @@ export default function Home({ localIp, port }: IStaticProps) {
                     key={item.timestamp}
                     deviceId={deviceId}
                     item={item}
+                    onDownload={(item) => {
+                      // downloadFile(item.content, item.name)
+                      socket?.emit("get-file-content", item);
+                      socket?.once("download-file", (data: IFileContent) => {
+                        downloadFile(
+                          data.content as unknown as ArrayBuffer,
+                          data.name
+                        );
+                      });
+                    }}
                   ></ChatBoardItem>
                 );
               })}
@@ -218,13 +242,15 @@ export default function Home({ localIp, port }: IStaticProps) {
                     {
                       name: value,
                     },
-                    { deviceId }
+                    { deviceId, type: "text" }
                   ),
                 ]);
               } else if (value instanceof Array) {
                 socket?.emit(
                   "send-file-to-server",
-                  value.map((v) => wrapperFileContent(v, { deviceId }))
+                  value.map((v) =>
+                    wrapperFileContent(v, { deviceId, type: "file" })
+                  )
                 );
               }
             }}

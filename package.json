@@ -1,6 +1,6 @@
 {
   "name": "x-transfer",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A file transfer tool",
   "homepage": "https://github.com/Stxr/x-transfer",
   "repository": {
@@ -15,8 +15,7 @@
     "build": "sh build.sh",
     "start": "next start",
     "prod": "NODE_ENV=production node server.js",
-    "lint": "next lint",
-    "prepublish": "next build"
+    "lint": "next lint"
   },
   "bin": "./out/server.js",
   "main": "./out/server.js",
