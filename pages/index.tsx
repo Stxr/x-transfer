@@ -10,6 +10,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import ReactDOM from "react-dom";
 import clsx from "clsx";
 import { Copy } from "@/components/Copy";
+import { formatTime } from "@/utils/utils";
 interface IFileContent extends FileContent {
   timestamp: number;
   deviceId: string;
@@ -42,6 +43,7 @@ export async function getStaticProps() {
   };
 }
 
+
 interface IChatBoardItemProps {
   item: Omit<IFileContent, "content">;
   deviceId: string | null;
@@ -51,7 +53,10 @@ function ChatBoardItem(props: IChatBoardItemProps) {
   const [copyVisible, setCopyVisible] = useState(false);
   return (
     <div className="mx-2 my-3 relative">
-      <div className="my-1">{props.item.deviceId}</div>
+      <div className="my-1">
+       <span className="font-semibold"> {props.item.deviceId}</span>
+        <span className="ml-2 opacity-60">{formatTime(props.item.timestamp)}</span>
+      </div>
       <div
         onMouseEnter={() => {
           setCopyVisible(true);
