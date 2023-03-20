@@ -65,22 +65,19 @@ function ChatBoardItem(props: IChatBoardItemProps) {
             ? "bg-[#3fb475] text-[#333]"
             : "bg-[#2c2c2c]"
         )}
-        onClick={() => {
-          // downloadFile(
-          //   item.content as unknown as ArrayBuffer,
-          //   item.name
-          // );
-        }}
       >
         {props.item.name}
         {/* {item.content && (
-       <img
-         src={URL.createObjectURL(
-           new Blob([item.content as unknown as ArrayBuffer])
-         )}
-       />
-      )} */}
-        <Copy visible={copyVisible && props.item.type === "text"} text={props.item.name}></Copy>
+          <img
+            src={URL.createObjectURL(
+              new Blob([item.content as unknown as ArrayBuffer])
+            )}
+          />
+        )} */}
+        <Copy
+          visible={copyVisible && props.item.type === "text"}
+          text={props.item.name}
+        ></Copy>
         {copyVisible && props.item.type === "file" && (
           <button
             onClick={() => {
@@ -288,6 +285,28 @@ const InputArea: React.FC<IInputAreaProps> = (props) => {
         className={`w-full p-2 min-h-[48px] max-h-36 text-slate-300 bg-slate-300 bg-opacity-20 resize-none focus:bg-opacity-30 focus:ring-0 focus:outline-none scroll-p-2  rounded-sm whitespace-pre `}
         placeholder="input something..."
         value={value}
+        onPaste={(e) => {
+          const items = e.clipboardData?.items;
+          if (items) {
+            for (let i = 0; i < items.length; i++) {
+              const file = items[i].getAsFile();
+              if (file) {
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onload = (e) => {
+                  const content = e.target?.result as ArrayBuffer;
+                  const fileContent: FileContent = {
+                    name: file.name,
+                    content: content as unknown as any,
+                    lastModified: new Date().getTime(),
+                  };
+                  props.onEnter?.([fileContent]);
+                  console.log("fileContent on paste:", fileContent);
+                };
+              }
+            }
+          }
+        }}
         onChange={(e) => {
           setValue(e.currentTarget.value);
         }}
